@@ -14,8 +14,8 @@ server-side connection to the separate Task Manager project.
 
 ```bash
 cp .env.example .env.local
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 Open [http://127.0.0.1:4173](http://127.0.0.1:4173). The server binds to loopback

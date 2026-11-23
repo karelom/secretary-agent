@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import path from 'node:path';
 import type { NextRequest } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -52,15 +53,23 @@ export async function POST(request: NextRequest) {
     .map((message) => `${message.role === 'user' ? '使用者' : 'Secretary Agent'}：${message.content}`)
     .join('\n\n');
   const prompt = [
-    '你是 Secretary Agent，專注於協助使用者整理日常工作、想法和待辦。請使用繁體中文，先理解需求、必要時詢問澄清，回答務實而簡潔。',
-    '此版本尚未連接外部待辦資料。不要聲稱已經建立、修改或完成任何 Todo；如果使用者希望追蹤某件事，先整理出適合建立待辦的內容並說明目前尚未儲存。',
+    '你是 Secretary Agent，協助使用者整理日常工作、想法和待辦。請使用繁體中文，先理解需求、必要時詢問澄清，回答務實而簡潔。',
+    '你可以使用 Task Manager 工具讀取和管理既有待辦。只有在使用者明確要求新增、修改或完成待辦時，才呼叫會寫入資料的工具；如果只是討論、整理或提出計畫，先詢問是否要存入待辦。只有在工具回報成功後，才能說已經儲存或更新。',
     transcript ? `先前對話：\n${transcript}` : '',
     `使用者的新訊息：\n${messages[messages.length - 1].content}`,
   ]
     .filter(Boolean)
     .join('\n\n');
 
-  const args = ['--mode', 'rpc', '--no-session'];
+  const args = [
+    '--mode',
+    'rpc',
+    '--no-session',
+    '--tools',
+    'list_tasks,list_projects,create_task,update_task,complete_task',
+    '--extension',
+    path.join(process.cwd(), 'pi/task-manager-tools.mjs'),
+  ];
   if (process.env.PI_PROVIDER) args.push('--provider', process.env.PI_PROVIDER);
   if (process.env.PI_MODEL) args.push('--model', process.env.PI_MODEL);
 
@@ -72,7 +81,16 @@ export async function POST(request: NextRequest) {
       let stderr = '';
       const pi = spawn(process.env.PI_BIN || 'pi', args, {
         cwd: process.env.PI_WORKING_DIRECTORY || process.cwd(),
-        env: process.env,
+        env: {
+          HOME: process.env.HOME,
+          PATH: process.env.PATH,
+          TMPDIR: process.env.TMPDIR,
+          LANG: process.env.LANG,
+          PI_PROVIDER: process.env.PI_PROVIDER,
+          PI_MODEL: process.env.PI_MODEL,
+          TASK_MANAGER_API_URL: process.env.TASK_MANAGER_API_URL,
+          TASK_MANAGER_API_TOKEN: process.env.TASK_MANAGER_API_TOKEN,
+        },
         stdio: ['pipe', 'pipe', 'pipe'],
       });
       pi.stdin.on('error', () => undefined);

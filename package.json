@@ -1,0 +1,24 @@
+{
+  "name": "secretary-agent",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "PORT=4173 next dev --hostname 127.0.0.1",
+    "build": "next build",
+    "start": "PORT=4173 next start --hostname 127.0.0.1",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "next": "^16.2.2",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.39",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "16.2.2",
+    "typescript": "^5.9.3"
+  }
+}

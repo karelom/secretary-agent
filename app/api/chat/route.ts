@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
+import { getModelStatus } from '../../lib/model-status';
 import type { NextRequest } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -48,6 +49,14 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: '最後一則訊息必須來自使用者。' }, { status: 400 });
   }
 
+  const modelStatus = await getModelStatus();
+  if (!modelStatus.available) {
+    return Response.json(
+      { error: modelStatus.message ?? '目前沒有可用的模型。' },
+      { status: 503 }
+    );
+  }
+
   const transcript = messages
     .slice(0, -1)
     .map((message) => `${message.role === 'user' ? '使用者' : 'Secretary Agent'}：${message.content}`)
@@ -79,15 +88,20 @@ export async function POST(request: NextRequest) {
       let closed = false;
       let buffer = '';
       let stderr = '';
+      let turnCompleted = false;
       const pi = spawn(process.env.PI_BIN || 'pi', args, {
         cwd: process.env.PI_WORKING_DIRECTORY || process.cwd(),
         env: {
+          NODE_ENV: process.env.NODE_ENV,
           HOME: process.env.HOME,
           PATH: process.env.PATH,
           TMPDIR: process.env.TMPDIR,
           LANG: process.env.LANG,
+          PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR,
           PI_PROVIDER: process.env.PI_PROVIDER,
           PI_MODEL: process.env.PI_MODEL,
+          LM_STUDIO_BASE_URL: process.env.LM_STUDIO_BASE_URL,
+          LM_STUDIO_API_TOKEN: process.env.LM_STUDIO_API_TOKEN,
           TASK_MANAGER_API_URL: process.env.TASK_MANAGER_API_URL,
           TASK_MANAGER_API_TOKEN: process.env.TASK_MANAGER_API_TOKEN,
         },
@@ -150,6 +164,9 @@ export async function POST(request: NextRequest) {
                   .map((item) => item.text ?? '')
                   .join('');
                 if (text) send({ type: 'final', text });
+              } else if (event.type === 'agent_end') {
+                turnCompleted = true;
+                pi.stdin.end();
               }
             } catch {
               // Ignore non-event output; Pi diagnostics are collected from stderr.
@@ -176,6 +193,8 @@ export async function POST(request: NextRequest) {
             type: 'error',
             error: details || `Pi 結束時發生錯誤（代碼 ${code ?? 'unknown'}）。`,
           });
+        } else if (!turnCompleted && !closed) {
+          send({ type: 'error', error: 'Pi 在完成回覆前就結束了，請再試一次。' });
         } else {
           send({ type: 'done' });
         }
@@ -189,7 +208,7 @@ export async function POST(request: NextRequest) {
         },
         { once: true }
       );
-      pi.stdin.end(`${JSON.stringify({ type: 'prompt', message: prompt })}\n`);
+      pi.stdin.write(`${JSON.stringify({ type: 'prompt', message: prompt })}\n`);
     },
   });
 

@@ -93,6 +93,9 @@ button { color: inherit; }
 .topbar-actions { display: flex; align-items: center; gap: 20px; }
 .runtime-status { display: inline-flex; align-items: center; gap: 8px; color: #68786e; font-size: 11px; }
 .runtime-status i { width: 7px; height: 7px; display: inline-block; background: #78a984; border-radius: 50%; box-shadow: 0 0 0 3px #e8f1e9; }
+.runtime-status.unavailable { color: #984a44; }
+.runtime-status.unavailable i { background: #c46c64; box-shadow: 0 0 0 3px #f7e8e6; }
+.runtime-status:not(.ready):not(.unavailable) i { background: #d4a34d; box-shadow: 0 0 0 3px #f7f0e2; }
 .icon-button { width: 34px; height: 34px; color: #8a948f; background: transparent; border-radius: 9px; transition: background .15s, color .15s; }
 .icon-button:hover { color: #a14c48; background: #f7eae8; }
 

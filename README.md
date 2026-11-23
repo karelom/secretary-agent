@@ -26,9 +26,13 @@ available on `PATH`. `PI_PROVIDER` and `PI_MODEL` are optional overrides.
 
 - Chat messages stream through Pi's RPC mode.
 - Pi runs in a fresh, non-persisted session for each user turn.
-- Conversation history is saved in this browser and replayed as context.
+- Conversation history is saved in this browser's `localStorage` under
+  `secretary-agent.messages.v1` and replayed as context. Clearing the conversation
+  removes that entry.
 - Tool activity is shown in the conversation.
 - Pi receives only Task Manager tools for this assistant.
+- The UI checks LM Studio's `/api/v1/models` endpoint every 15 seconds and
+  disables chat input when the configured model is unavailable.
 
 ## Task Manager connection
 
